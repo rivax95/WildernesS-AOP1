@@ -8,7 +8,7 @@ public class Ataque : MonoBehaviour
     public int daño = 1;
     public List<string> enemigos = new List<string>();
     public bool derecha = true;
-    public bool puedeatacar = false;
+   // public bool puedeatacar = false;
     public LayerMask rayCastDetect;
     public float culdown = 0.5f;
     // NOTE por la cara
@@ -46,7 +46,7 @@ public class Ataque : MonoBehaviour
                     GameObject enemy = obj.collider.gameObject;
                     if ((Input.GetKeyDown(KeyCode.Mouse0))) //instrucciones
                     {
-                        enemy.GetComponent<Enemigo>().vida -= daño;
+                        enemy.GetComponent<Enemigos2>().vidas -= daño; // NOTE QUITAR ENEMIGO Y PONER ENEMIGOS2 
                         //TODO se ejecuta una animacion
                         //TODO tiempo de espera de refresco del ataque
                     }
@@ -67,7 +67,7 @@ public class Ataque : MonoBehaviour
         }
         else
         {
-            puedeatacar = false;
+           // puedeatacar = false;
         }
 
     }

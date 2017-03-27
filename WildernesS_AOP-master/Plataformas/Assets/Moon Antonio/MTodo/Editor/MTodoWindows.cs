@@ -33,14 +33,22 @@ namespace MoonAntonio.MTodo
         /// <para>Ruta de data</para>
         /// </summary>
         public static string dataPath = @"Assets/Moon Antonio/MTodo/Data/MTodoData.asset";
-        /// <summary>
-        /// <para>Data de MTodo</para>
-        /// </summary>
-        private static MTodoData data;
-        #endregion
+		/// <summary>
+		/// <para>Ruta de data</para>
+		/// </summary>
+		public static string dataPathTarea = @"Assets/Moon Antonio/MTodo/Data/MTareaData.asset";
+		/// <summary>
+		/// <para>Data de MTodo</para>
+		/// </summary>
+		private static MTodoData data;
+		/// <summary>
+		/// <para>Data de MTodo</para>
+		/// </summary>
+		private static MTodoTareaData dataTarea;
+		#endregion
 
-        #region Gui
-        [PreferenceItem("MToDo")]
+		#region Gui
+		[PreferenceItem("MToDo")]
         public static void ToDoWindowsGUI()
         {
             if (!ajustesCargados)
@@ -56,10 +64,34 @@ namespace MoonAntonio.MTodo
 
             using (new MTodoExtensiones.HorizontalBlock())
             {
-                GUILayout.Label(dataPath, GUILayout.ExpandWidth(true));
-                if (GUILayout.Button("Buscar", EditorStyles.miniButton, GUILayout.ExpandWidth(false)))
-                    dataPath = MTodoExtensiones.GlobalPathARelativa(EditorUtility.SaveFilePanel("", "Assets", "MTodoData", "asset"));
+				using (new MTodoExtensiones.VerticalBlock())
+				{
+					GUILayout.Label("MTodoData  :");
+					if (GUILayout.Button("Buscar", EditorStyles.miniButton, GUILayout.ExpandWidth(false)))
+						dataPath = MTodoExtensiones.GlobalPathARelativa(EditorUtility.SaveFilePanel("", "Assets", "MTodoData", "asset"));
+				}
+
+				using (new MTodoExtensiones.VerticalBlock())
+				{
+					GUILayout.Label(dataPath, GUILayout.ExpandWidth(true));
+				}
+
             }
+
+			using (new MTodoExtensiones.HorizontalBlock())
+			{
+				using (new MTodoExtensiones.VerticalBlock())
+				{
+					GUILayout.Label("MTareaData :");
+					if (GUILayout.Button("Buscar", EditorStyles.miniButton, GUILayout.ExpandWidth(false)))
+						dataPathTarea = MTodoExtensiones.GlobalPathARelativa(EditorUtility.SaveFilePanel("", "Assets", "MTareaData", "asset"));
+				}
+
+				using (new MTodoExtensiones.VerticalBlock())
+				{
+					GUILayout.Label(dataPathTarea, GUILayout.ExpandWidth(true));
+				}
+			}
 
 			EditorGUILayout.HelpBox("Version MTodo<" + data.versionActual + ">", MessageType.Info);
 
@@ -73,22 +105,25 @@ namespace MoonAntonio.MTodo
         /// <summary>
         /// <para>Carga los ajustes de MTodo</para>
         /// </summary>
-        private static void CargarAjustes()
-        {
+        private static void CargarAjustes()// Carga los ajustes de MTodo
+		{
             data = (MTodoData)MTodoExtensiones.CrearDataPersistente<MTodoData>(dataPath);
+			dataTarea = MTodoExtensiones.CrearDataPersistente<MTodoTareaData>(dataPathTarea);
             autoEscaneo = data.AutoEscaneoMTodo;
             dataPath = data.RutaDataMTodo;
+			dataPathTarea = dataTarea.RutaDataMTodoTareas;
         }
 
         /// <summary>
         /// <para>Aplica los ajustes de MTodo</para>
         /// </summary>
-        private static void GuardarAjustes()
-        {
+        private static void GuardarAjustes()// Aplica los ajustes de MTodo
+		{
             data = MTodoExtensiones.CrearDataPersistente<MTodoData>(dataPath);
             data.AutoEscaneoMTodo = autoEscaneo;
             data.RutaDataMTodo = dataPath;
-        }
+			dataTarea = MTodoExtensiones.CrearDataPersistente<MTodoTareaData>(dataPathTarea);
+		}
         #endregion
     }
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Enemigos2 : MonoBehaviour {
-
+    public int vidas = 1;
     GameObject player;
     bool derecha;
     public float rango = 0.5f;
@@ -13,8 +13,12 @@ public class Enemigos2 : MonoBehaviour {
     Vector2 objetibo;
     public float distancia_ataque=0.5f;
     public int dano = 1;
-    public float VelMov = 0.5f;
+    public bool quieto = false;
+    public float culdown = 0.5f;
+    public float VelMov = 1.5f;
     MovimientoEnemigo mov;
+    bool golpea = false;
+    Vector2 quietov2;
     // Use this for initialization
     void Start () {
         player = GameObject.FindWithTag("Player");
@@ -23,7 +27,9 @@ public class Enemigos2 : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-         detectiz = Physics2D.Raycast(transform.position, transform.right * (-1),rango,raycastdetected);
+        muerte();
+         quietov2 = transform.position;
+        detectiz = Physics2D.Raycast(transform.position, transform.right * (-1),rango,raycastdetected);
          detectde = Physics2D.Raycast(transform.position, transform.right * (1), rango, raycastdetected);
         Debug.DrawRay(transform.position, transform.right * (-1) * rango, Color.white, 0);
         Debug.DrawRay(transform.position, transform.right * (1) * rango, Color.white, 0);
@@ -34,23 +40,33 @@ public class Enemigos2 : MonoBehaviour {
     { // NOTE mirar bien el script de movimiento que no interrumpa a este ni viceversa. *Mirado y corregio a falta de testearlo|26/03/2017 12:00|
         if (detectde.collider.tag == "Player")
         {
+           
+            golpea = true;
             mov.Persigue = true;
             Debug.Log("Enemigo detecta a Player");
             this.gameObject.GetComponent<SpriteRenderer>().flipX = false;
             transform.position += new Vector3(+1f, 0f, 0f) * VelMov * Time.deltaTime;
-            if (detectde.distance == distancia_ataque) // not found
+            Debug.Log(detectde.distance + " Distancia del enemigo al personaje");
+            if (detectde.distance < distancia_ataque) // ya tira
             {
-                //NOTE Cuando se hacerque se tiene que quedar parado
-                transform.position = transform.position;
-                //NOTE Primero un culdown y al termianr el ataque otro
+                quieto = true;
+                if (quieto==true)
+                {
+                    transform.position = quietov2;
+                }
+               
                 Debug.Log("Enemigo ataca");
                 //TODO ejecuta animacion
-                //TODO CULDOWN ATAQUE
-                player.GetComponent<PlayerData>().vidas -= dano;
+                 if (!IsInvoking("ferCooldown")) // NOTE MIRAR Repasado con fernando 27/03/2017
+                {
+                    player.GetComponent<PlayerData>().vidas -= dano;
+                    Invoke("ferCooldown", 2.0f);
+                }
             }
         }
         else
         {
+            quieto = false;
             mov.Persigue = false;
         }
     }
@@ -66,4 +82,19 @@ public class Enemigos2 : MonoBehaviour {
             derecha = false;
         }
     }
+    public void muerte()
+    {
+        if (vidas == 0)
+        {
+            // TODO AUDIO
+            //TODO ANIMACION
+            Destroy(this.gameObject);
+        }
+    }
+
+    void ferCooldown()
+    {
+        return;
+    }
+   
 }

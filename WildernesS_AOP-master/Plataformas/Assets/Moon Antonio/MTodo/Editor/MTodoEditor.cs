@@ -3,8 +3,8 @@
 // MTodoEditor.cs (12/01/2017)													\\
 // Autor: Antonio Mateo (Moon Antonio) 									        \\
 // Descripcion:		Editor de MTodo												\\
-// Fecha Mod:		21/03/2017													\\
-// Ultima Mod:		Cambio en el namespace      								\\
+// Fecha Mod:		27/03/2017													\\
+// Ultima Mod:		Add funcionalidad de tareas      							\\
 //******************************************************************************\\
 
 #region Librerias
@@ -25,11 +25,31 @@ namespace MoonAntonio.MTodo
 	[ExecuteInEditMode]
     public class MTodoEditor : EditorWindow
     {
-        #region Variables Privadas
-        /// <summary>
-        /// <para>Archivos de MTodo</para>
-        /// </summary>
-        private FileInfo[] archivos;                                                    // Archivos de MTodo
+		#region Variables Privadas
+		#region Core
+		/// <summary>
+		/// <para>Temp actualizador.</para>
+		/// </summary>
+		private int updates = 0;                                                        // Temp actualizador
+		/// <summary>
+		/// <para>Url del txt de version.</para>
+		/// </summary>
+		private string urlVerionTop = "https://raw.githubusercontent.com/MOON-TYPE/MTodo/master/Res/Version/version.txt";// Url del txt de version
+		/// <summary>
+		/// <para>Si esta desactualizado MTodo.</para>
+		/// </summary>
+		private bool mtodoDesactualizado = false;                                       // Si esta desactualizado MTodo
+		/// <summary>
+		/// <para>Estado de la herramienta.</para>
+		/// </summary>
+		private ToolEstado estado = ToolEstado.MTodo;									// Estado de la herramienta
+		#endregion
+
+		#region MTodo
+		/// <summary>
+		/// <para>Archivos de MTodo</para>
+		/// </summary>
+		private FileInfo[] archivos;                                                    // Archivos de MTodo
         /// <summary>
         /// <para>Data de MTodo</para>
         /// </summary>
@@ -37,7 +57,7 @@ namespace MoonAntonio.MTodo
         /// <summary>
         /// <para>Ruta de MTodo</para>
         /// </summary>
-        private string rutaData = @"Assets/Moon Antonio/MTodo/Data/MTodoData.asset";      // Ruta de MTodo
+        private string rutaData = @"Assets/Moon Antonio/MTodo/Data/MTodoData.asset";    // Ruta de MTodo
         /// <summary>
         /// <para>Tickets que seran mostrados</para>
         /// </summary>
@@ -94,18 +114,34 @@ namespace MoonAntonio.MTodo
         {
             get { return position.width / 3f; }
         }
+		#endregion
+
+		#region MTarea
 		/// <summary>
-		/// <para>Temp actualizador.</para>
-		/// </summary>
-		private int updates = 0;                                                        // Temp actualizador
+        /// <para>Data de MTodoTarea</para>
+        /// </summary>
+        private MTodoTareaData dataTarea;                                                // Data de MTodoTarea
 		/// <summary>
-		/// <para>Url del txt de version.</para>
+		/// <para>Ruta de MTodoTarea</para>
 		/// </summary>
-		private string urlVerionTop = "https://raw.githubusercontent.com/MOON-TYPE/MTodo/master/Res/Version/version.txt";// Url del txt de version
+		private string rutaDataTarea = @"Assets/Moon Antonio/MTodo/Data/MTareaData.asset";// Ruta de MTodoTarea
 		/// <summary>
-		/// <para>Si esta desactualizado MTodo.</para>
+		/// <para>Tareas que seran mostrados</para>
 		/// </summary>
-		private bool mtodoDesactualizado = false;										// Si esta desactualizado MTodo
+		private clsMTodoTareas[] tareasMostradas;                                       // Tareas que seran mostrados
+		/// <summary>
+		/// <para>Nombre de la nueva categoria</para>
+		/// </summary>
+		private string nuevaCategoriaTarea = "";                                        // Nombre de la nueva categoria
+		/// <summary>
+		/// <para>Nombre de la nueva tarea.</para>
+		/// </summary>
+		private string nombreTarea;														// Nombre de la nueva tarea
+		/// <summary>
+		/// <para>Descripcion de la tarea.</para>
+		/// </summary>
+		private string descripTarea;													// Descripcion de la tarea
+		#endregion
 		#endregion
 
 		#region Inicializadores
@@ -134,12 +170,14 @@ namespace MoonAntonio.MTodo
 
 			// Obtener datapath
 			rutaData = MTodoWindows.dataPath;
+			rutaDataTarea = MTodoWindows.dataPathTarea;
 
             // Refrescar archivos
             RefrescarArchivos();
 
             // Cargar data
             data = MTodoExtensiones.CrearDataPersistente<MTodoData>(rutaData);
+			dataTarea = MTodoExtensiones.CrearDataPersistente<MTodoTareaData>(rutaDataTarea);
 
 			// Si la ruta esta vacia, asignarle una
 			if (data.RutaDataMTodo == string.Empty || data.RutaDataMTodo == null)
@@ -147,9 +185,14 @@ namespace MoonAntonio.MTodo
 				data.RutaDataMTodo = rutaData;
 				MTodoWindows.dataPath = rutaData;
 			}
+			if (dataTarea.RutaDataMTodoTareas == string.Empty || dataTarea.RutaDataMTodoTareas == null)
+			{
+				dataTarea.RutaDataMTodoTareas = rutaDataTarea;
+				MTodoWindows.dataPathTarea = rutaDataTarea;
+			}
 
-            // Refrescar Data
-            RefrescarData();
+			// Refrescar Data
+			RefrescarData();
 
             // Activar observador
             observador = new FileSystemWatcher(Application.dataPath, "*.cs");
@@ -180,58 +223,137 @@ namespace MoonAntonio.MTodo
         {
             if(data == null)
             {
-                GUILayout.Label("No se ha cargado la Data", EditorStyles.centeredGreyMiniLabel);
+                GUILayout.Label("No se ha cargado la Data.", EditorStyles.centeredGreyMiniLabel);
                 return;
             }
 
-            Undo.RecordObject(data, "tododata");
+			if (dataTarea == null)
+			{
+				GUILayout.Label("No se ha cargado la Data de tareas.", EditorStyles.centeredGreyMiniLabel);
+				return;
+			}
 
-            Toolbar();
-            using (new MTodoExtensiones.HorizontalBlock())
-            {
-                Sidebar();
-                MainArea();
-            }
+			Undo.RecordObject(data, "tododata");
 
-            ProcesadorDelInput();
+			Header();
 
-            EditorUtility.SetDirty(data);
+			if (estado == ToolEstado.MTodo)
+			{
+				using (new MTodoExtensiones.HorizontalBlock())
+				{
+					Sidebar();
+					MainArea();
+				}
+
+				ProcesadorDelInput();
+
+				EditorUtility.SetDirty(data);
+			}
+
+			if (estado == ToolEstado.MTarea)
+			{
+				using (new MTodoExtensiones.HorizontalBlock())
+				{
+					SidebarTarea();
+					MainAreaTarea();
+				}
+
+				EditorUtility.SetDirty(dataTarea);
+			}
         }
 
 		/// <summary>
 		/// <para>Toolbar</para>
 		/// </summary>
-        private void Toolbar()
-        {
-            using (new MTodoExtensiones.HorizontalBlock(EditorStyles.toolbar))
-            {
-                GUILayout.Label("MToDo");
-                if (GUILayout.Button("Escanear", EditorStyles.toolbarButton))
-                    EscanearTodosLosArchivos();
-
-				GUI.backgroundColor = Color.red;
-
-				if (mtodoDesactualizado == true)
+		private void Header()
+		{
+			using (new MTodoExtensiones.HorizontalBlock(EditorStyles.toolbar))
+			{
+				if (estado == ToolEstado.MTodo)
 				{
-					if (GUILayout.Button("Actualizar a " + data.versionTop, EditorStyles.toolbarButton))
-						Application.OpenURL("https://github.com/MOON-TYPE/MTodo/releases");
+					GUI.backgroundColor = Color.green;
+					if (GUILayout.Button("MToDo", EditorStyles.toolbarButton))
+					{
+						estado = ToolEstado.MTodo;
+						data.estado = ToolEstado.MTodo;
+					}
+
+					GUI.backgroundColor = Color.red;
+					if (GUILayout.Button("MTarea", EditorStyles.toolbarButton))
+					{
+						estado = ToolEstado.MTarea;
+						data.estado = ToolEstado.MTarea;
+					}
 				}
 				else
 				{
-					EditorGUILayout.Slider(data.GetCountDeCategorias(catActual), 0, data.Tickets.Count);
+					GUI.backgroundColor = Color.red;
+					if (GUILayout.Button("MToDo", EditorStyles.toolbarButton))
+					{
+						estado = ToolEstado.MTodo;
+						data.estado = ToolEstado.MTodo;
+					}
+
+					GUI.backgroundColor = Color.green;
+					if (GUILayout.Button("MTarea", EditorStyles.toolbarButton))
+					{
+						estado = ToolEstado.MTarea;
+						data.estado = ToolEstado.MTarea;
+					}
 				}
 
 				GUI.backgroundColor = Color.white;
-				
-				GUILayout.FlexibleSpace();
-                BuscaString = BuscarCampo(BuscaString, GUILayout.Width(250));
-            }
-        }
 
+				if (estado == ToolEstado.MTodo)
+				{
+					if (GUILayout.Button("Escanear", EditorStyles.toolbarButton))
+						EscanearTodosLosArchivos();
+
+					GUI.backgroundColor = Color.red;
+
+					if (mtodoDesactualizado == true)
+					{
+						if (GUILayout.Button("Actualizar a " + data.versionTop, EditorStyles.toolbarButton))
+							Application.OpenURL("https://github.com/MOON-TYPE/MTodo/releases");
+					}
+					else
+					{
+						EditorGUILayout.Slider(data.GetCountDeCategorias(catActual), 0, data.Tickets.Count);
+					}
+
+					GUI.backgroundColor = Color.white;
+
+					GUILayout.FlexibleSpace();
+					BuscaString = BuscarCampo(BuscaString, GUILayout.Width(250));
+				}
+
+				if (estado == ToolEstado.MTarea)
+				{
+					GUI.backgroundColor = Color.red;
+
+					if (mtodoDesactualizado == true)
+					{
+						if (GUILayout.Button("Actualizar a " + data.versionTop, EditorStyles.toolbarButton))
+							Application.OpenURL("https://github.com/MOON-TYPE/MTodo/releases");
+					}
+					else
+					{
+						EditorGUILayout.Slider(dataTarea.Tareas.Count,0,dataTarea.Tareas.Count + dataTarea.TareasCompletadas.Count);
+						EditorGUILayout.LabelField((dataTarea.Tareas.Count + dataTarea.TareasCompletadas.Count).ToString());
+					}
+
+					GUI.backgroundColor = Color.white;
+
+					GUILayout.FlexibleSpace();
+				}
+			}
+		}
+
+		#region MTodo GUI
 		/// <summary>
 		/// <para>Sidebar</para>
 		/// </summary>
-        private void Sidebar()
+		private void Sidebar()
         {
             using (new MTodoExtensiones.VerticalBlock(GUI.skin.box, GUILayout.Width(SidebarWidth), GUILayout.ExpandHeight(true)))
             {
@@ -257,13 +379,51 @@ namespace MoonAntonio.MTodo
                         TicketsCampo(i);
             }
         }
-        #endregion
+		#endregion
 
-        #region Metodos
-        /// <summary>
-        /// <para>Refrescar los archivos en MTodo del proyecto</para>
-        /// </summary>
-        private void RefrescarArchivos()// Refrescar los archivos en MTodo del proyecto
+		#region MTarea GUI
+		/// <summary>
+		/// <para>Sidebar</para>
+		/// </summary>
+		private void SidebarTarea()
+		{
+			using (new MTodoExtensiones.VerticalBlock(GUI.skin.box, GUILayout.Width(SidebarWidth), GUILayout.ExpandHeight(true)))
+			{
+				using (new MTodoExtensiones.ScrollviewBlock(ref sidebarScroll))
+				{
+					AddTarea();
+				}
+			}
+		}
+
+		/// <summary>
+		/// <para>Area</para>
+		/// </summary>
+		private void MainAreaTarea()
+		{
+			using (new MTodoExtensiones.VerticalBlock(GUI.skin.box, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
+			{
+				using (new MTodoExtensiones.ScrollviewBlock(ref mainAreaScroll))
+				{
+					if (dataTarea.Tareas.Count <= 0)
+					{
+						EditorGUILayout.LabelField("No hay Tareas pendientes.");
+					}
+					else
+					{
+						CampoTarea();
+					}
+				}
+			}
+		}
+		#endregion
+		#endregion
+
+		#region Metodos
+		/// <summary>
+		/// <para>Refrescar los archivos en MTodo del proyecto</para>
+		/// </summary>
+		private void RefrescarArchivos()// Refrescar los archivos en MTodo del proyecto
         {
             // Variable del directorio
             var dirAssets = new DirectoryInfo(Application.dataPath);
@@ -313,11 +473,11 @@ namespace MoonAntonio.MTodo
             }
         }
 
-        /// <summary>
-        /// <para>Escanea un archivo</para>
-        /// </summary>
-        /// <param name="rutaArchivo">Ruta del archivo</param>
-        private void EscanearArchivo(string rutaArchivo)// Escanea un archivo
+		/// <summary>
+		/// <para>Escanea un archivo</para>
+		/// </summary>
+		/// <param name="rutaArchivo">Ruta del archivo</param>
+		private void EscanearArchivo(string rutaArchivo)// Escanea un archivo
         {
             var archivo = new FileInfo(rutaArchivo);
 
@@ -366,10 +526,27 @@ namespace MoonAntonio.MTodo
             }
         }
 
-        /// <summary>
-        /// <para>Procesa el input del mouse</para>
-        /// </summary>
-        private void ProcesadorDelInput()// Procesa el input del mouse
+		/// <summary>
+		/// <para>Agrega una nueva categoria</para>
+		/// </summary>
+		private void AddCategoriaTarea()// Agrega una nueva categoria
+		{
+			using (new MTodoExtensiones.HorizontalBlock(EditorStyles.helpBox))
+			{
+				nuevaCategoriaTarea = EditorGUILayout.TextField(nuevaCategoriaTarea);
+				if (GUILayout.Button("+", EditorStyles.miniButton, GUILayout.ExpandWidth(false)))
+				{
+					dataTarea.AddCategoria(nuevaCategoriaTarea);
+					nuevaCategoriaTarea = "";
+					GUI.FocusControl(null);
+				}
+			}
+		}
+
+		/// <summary>
+		/// <para>Procesa el input del mouse</para>
+		/// </summary>
+		private void ProcesadorDelInput()// Procesa el input del mouse
         {
             if (Event.current.type == EventType.MouseDown)
             {
@@ -436,13 +613,45 @@ namespace MoonAntonio.MTodo
                 SetCatActual(index);
         }
 
-        /// <summary>
-        /// <para>Busca en un campo</para>
-        /// </summary>
-        /// <param name="buscarPalabr">Palabra que buscar</param>
-        /// <param name="opciones">Opciones de layout</param>
-        /// <returns>La palabra encontrada</returns>
-        private string BuscarCampo(string buscarPalabr, params GUILayoutOption[] opciones)// Busca en un campo
+		/// <summary>
+		/// <para>Busca en el campo de las categorias</para>
+		/// </summary>
+		/// <param name="index">ID de la categoria</param>
+		private void AddTarea()// Busca en el campo de las categorias
+		{
+			EditorGUILayout.BeginVertical("box");
+
+			EditorGUILayout.LabelField("Nueva Tarea");
+
+			EditorGUILayout.Space();
+
+			EditorGUILayout.LabelField("Nombre");
+			nombreTarea = EditorGUILayout.TextField(nombreTarea);
+
+			EditorGUILayout.Space();
+
+			EditorGUILayout.LabelField("Descripcion");
+			descripTarea = EditorGUILayout.TextArea(descripTarea,GUILayout.Height(100f));
+
+			EditorGUILayout.Space();
+
+			if (GUILayout.Button("+"))
+			{
+				dataTarea.AddTarea(nombreTarea, descripTarea);
+				nombreTarea = "";
+				descripTarea = "";
+			}
+
+			EditorGUILayout.EndVertical();
+		}
+
+		/// <summary>
+		/// <para>Busca en un campo</para>
+		/// </summary>
+		/// <param name="buscarPalabr">Palabra que buscar</param>
+		/// <param name="opciones">Opciones de layout</param>
+		/// <returns>La palabra encontrada</returns>
+		private string BuscarCampo(string buscarPalabr, params GUILayoutOption[] opciones)// Busca en un campo
         {
             buscarPalabr = GUILayout.TextField(buscarPalabr, "ToolbarSeachTextField", opciones);
             if (GUILayout.Button("", "ToolbarSeachCancelButton"))
@@ -480,11 +689,11 @@ namespace MoonAntonio.MTodo
                 };
         }
 
-        /// <summary>
-        /// <para>Fija la categoria actual</para>
-        /// </summary>
-        /// <param name="index">ID Categoria</param>
-        private void SetCatActual(int index)// Fija la categoria actual
+		/// <summary>
+		/// <para>Fija la categoria actual</para>
+		/// </summary>
+		/// <param name="index">ID Categoria</param>
+		private void SetCatActual(int index)// Fija la categoria actual
         {
             EditorApplication.delayCall += () =>
             {
@@ -494,10 +703,10 @@ namespace MoonAntonio.MTodo
             };
         }
 
-        /// <summary>
-        /// <para>Click Derecho con el mouse</para>
-        /// </summary>
-        private void ClickMouseDerecho()// Click Derecho con el mouse
+		/// <summary>
+		/// <para>Click Derecho con el mouse</para>
+		/// </summary>
+		private void ClickMouseDerecho()// Click Derecho con el mouse
         {
             GenericMenu menu = new GenericMenu();
 
@@ -536,6 +745,42 @@ namespace MoonAntonio.MTodo
 					break;
 			}
         }
+
+		/// <summary>
+		/// <para>Campo de las tareas</para>
+		/// </summary>
+		private void CampoTarea()// Campo de las tareas
+		{
+			EditorGUILayout.BeginVertical("Box");
+
+			for (int n = 0; n < dataTarea.TareasCount; n++)
+			{
+				EditorGUILayout.BeginVertical();
+
+				EditorGUILayout.LabelField(dataTarea.Tareas[n].nombre);
+				EditorGUILayout.LabelField(dataTarea.Tareas[n].fechaInicio.ToString());
+
+				EditorGUILayout.EndVertical();
+
+				EditorGUILayout.BeginHorizontal("box");
+
+				EditorGUILayout.LabelField(dataTarea.Tareas[n].descripcion,GUILayout.Width(550f),GUILayout.Height(100f));
+
+				EditorGUILayout.EndHorizontal();
+
+				EditorGUILayout.BeginHorizontal("box");
+				if (GUILayout.Button("Finalizar"))
+				{
+					dataTarea.Tareas[n].Completado();
+					dataTarea.TareasCompletadas.Add(new clsMTodoTareas(dataTarea.Tareas[n].nombre, dataTarea.Tareas[n].descripcion));
+					dataTarea.Tareas.RemoveAt(n);
+				}
+				EditorGUILayout.EndHorizontal();
+
+			}
+
+			EditorGUILayout.EndVertical();
+		}
 
 		/// <summary>
 		/// <para>Comprueba la version actual y la version mas alta de MTodo.</para>

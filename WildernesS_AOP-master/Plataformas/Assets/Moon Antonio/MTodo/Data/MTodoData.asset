@@ -11,11 +11,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 440ef0a678975ba4cbb62d9aced23bb9, type: 3}
   m_Name: MTodoData
   m_EditorClassIdentifier: 
-  Tickets: []
+  estado: 1
+  Tickets:
+  - Texto: " ejecuta animacion\r"
+    Nota: 
+    Categoria: TODO
+    Archivo: C:\Users\rivasc\Documents\GitHub\WildernesS-AOP1\WildernesS_AOP-master\Plataformas\Assets\Script\Enemigos2.cs
+    Linea: 59
+    PathAMostrar: Assets/Script/Enemigos2.cs(59)
+  - Texto: " AUDIO\r"
+    Nota: 
+    Categoria: TODO
+    Archivo: C:\Users\rivasc\Documents\GitHub\WildernesS-AOP1\WildernesS_AOP-master\Plataformas\Assets\Script\Enemigos2.cs
+    Linea: 89
+    PathAMostrar: Assets/Script/Enemigos2.cs(89)
+  - Texto: " ANIMACION\r"
+    Nota: 
+    Categoria: TODO
+    Archivo: C:\Users\rivasc\Documents\GitHub\WildernesS-AOP1\WildernesS_AOP-master\Plataformas\Assets\Script\Enemigos2.cs
+    Linea: 90
+    PathAMostrar: Assets/Script/Enemigos2.cs(90)
   Categorias:
   - TODO
   - BUG
+  - MTODO
   AutoEscaneoMTodo: 0
   RutaDataMTodo: Assets/Moon Antonio/MTodo/Data/MTodoData.asset
-  versionActual: 1.5.2
-  versionTop: 
+  versionActual: 2.0.0
+  versionTop: 2.0.0

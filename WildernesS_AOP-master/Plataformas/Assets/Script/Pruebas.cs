@@ -24,10 +24,15 @@ public class Pruebas : MonoBehaviour {
     void temporizador()
     {
         timer -= Time.deltaTime;
-        if (timer <=0)
+        if (timer <= 0)
         {
-          
+
+        }
+        if (!IsInvoking("ContadorPinchado"))
+        {
+            Invoke("ContadorPinchado", 1);
         }
     }
+
  
 }
