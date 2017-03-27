@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 6794a5524a392614cb4ad035c175e631
+timeCreated: 1489513670
+licenseType: Free
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 2
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Flat Earth Scribe
+  fontNames:
+  - Flat Earth Scribe
+  fallbackFontReferences: []
+  customCharacters: 123
+  fontRenderingMode: 2
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
